@@ -12,27 +12,25 @@ import {
     Alert,
     MenuItem,
     Button,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    IconButton,
 } from '@mui/material';
-import { useForm, Controller, useFieldArray, useWatch } from 'react-hook-form';
+import { useForm, Controller, useWatch } from 'react-hook-form';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import DeleteIcon from '@mui/icons-material/Delete';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
+import { useEffect } from 'react';
+
+// --- Interfaces based on Live RERA Site Scan ---
 
 interface Partner {
-    designation: string;
+    id?: string;
     firstName: string;
-    middleName: string;
+    middleName?: string;
     lastName: string;
+    designation: string;
     pan: string;
     aadhar: string;
+    email: string;
+    mobile: string;
+
+    // Partner Address
     houseNo: string;
     buildingName: string;
     streetName: string;
@@ -43,567 +41,388 @@ interface Partner {
     mandal: string;
     village: string;
     pincode: string;
-    photo?: FileList;
+
+    photo?: FileList | string;
 }
 
 interface PersonalInfoFormValues {
-    // Shared
-    infoType: string;
-    hasExperience: string;
-    hasGst: string;
+    // Top Level Logic
+    infoType: 'individual' | 'other';
 
-    // Individual
-    firstName: string;
-    middleName: string;
-    lastName: string;
-    pan: string;
-    fatherName: string;
-    aadhar: string;
+    // --- Individual Fields ---
+    indFirstName: string;
+    indMiddleName: string;
+    indLastName: string;
+    indFatherName: string;
+    indAadhar: string;
+    indPan: string;
 
-    // Organization (Other)
+    // --- Additional Toggles (Live Site Findings) ---
+    pastExperience: 'yes' | 'no';
+    hasGst: 'yes' | 'no';
+    gstNumber?: string; // Conditional
+    criminalCase: 'yes' | 'no';
+    otherStateRegistration: 'yes' | 'no';
+
+    // --- Organization Fields ---
     orgType: string;
     orgName: string;
     orgPan: string;
-    orgTypeSpecify: string; // New field
-
-    gstNumber: string; // Dynamic
-
-    // Address (Shared structure but different labels potentially)
-    houseNo: string;
-    buildingName: string;
-    streetName: string;
-    locality: string;
-    landmark: string;
-    state: string;
-    district: string;
-    mandal: string;
-    village: string;
-    pincode: string;
-
-    // Contact (Shared structure)
-    mobile: string;
-    secondaryMobile: string; // New
-    officeNumber: string;
-    fax: string;
-    email: string;
-    website: string;
+    orgOfficeNo: string;
+    orgFax: string;
+    orgWebsite: string;
 
     // Org Contact Person
     contactPersonName: string;
     contactPersonDesignation: string;
 
-    // Partners
-    partners: Partner[];
+    // --- Common Address Fields ---
+    houseNo: string;
+    buildingName: string;
+    streetName: string;
+    locality: string;
+    landmark: string;
+    state: string;
+    division: string; // New field from live site
+    district: string;
+    mandal: string;
+    village: string;
+    pincode: string;
+
+    // --- Contact Details ---
+    mobile: string;
+    secondaryMobile: string; // New
+    email: string;
+
+    // --- Members / Partners ---
+    members: Partner[];
 }
 
 const PersonalInfoPage = () => {
     const { register, control, handleSubmit, formState: { errors } } = useForm<PersonalInfoFormValues>({
         defaultValues: {
             infoType: 'individual',
-            hasExperience: 'no',
-            hasGst: 'no',
             state: 'Telangana',
             orgType: 'LLP',
-            partners: [],
+            pastExperience: 'no', // Default no
+            hasGst: 'no',
+            criminalCase: 'no',
+            otherStateRegistration: 'no',
+            members: [],
         },
     });
 
-    const { fields, append, remove } = useFieldArray({
-        control,
-        name: "partners"
-    });
-
     const infoType = useWatch({ control, name: 'infoType' });
-    const orgType = useWatch({ control, name: 'orgType' });
     const hasGst = useWatch({ control, name: 'hasGst' });
+    const pastExperience = useWatch({ control, name: 'pastExperience' });
+    const isIndividual = infoType === 'individual';
+
+    // Save Past Experience preference to Local Storage for Layout/Sidebar checks
+    useEffect(() => {
+        localStorage.setItem('rera_pastExperience', pastExperience);
+    }, [pastExperience]);
 
     const onSubmit = (data: PersonalInfoFormValues) => {
-        console.log(data);
-        alert('Form submitted (check console)');
+        console.log('Form Data:', data);
+        alert('Form Submitted! Check console for JSON.');
     };
-
-    const isIndividual = infoType === 'individual';
 
     return (
         <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
-            <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, color: 'text.primary', mb: 3 }}>
+            <Typography variant="h5" sx={{ mb: 3, fontWeight: 'bold' }}>
                 My Profile
             </Typography>
 
-            <Alert severity="error" sx={{ mb: 4, borderRadius: 2 }}>
-                All * Mark field are mandatory.
+            <Alert severity="warning" sx={{ mb: 3 }}>
+                Fields marked with * are mandatory. Please fill strictly as per official documents.
             </Alert>
 
-            {/* General Information */}
-            <Paper sx={{ p: 4, mb: 4 }}>
-                <Typography variant="h6" color="primary" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
+            {/* --- General Information --- */}
+            <Paper sx={{ p: 3, mb: 3 }}>
+                <Typography variant="subtitle1" color="primary" sx={{ fontWeight: 'bold', mb: 2 }}>
                     General Information
                 </Typography>
-                <FormControl component="fieldset">
-                    <FormLabel component="legend" sx={{ fontWeight: 500, color: 'text.primary', mb: 1 }}>Information Type *</FormLabel>
-                    <Controller
-                        rules={{ required: true }}
-                        control={control}
-                        name="infoType"
-                        render={({ field }) => (
-                            <RadioGroup {...field} row>
-                                <FormControlLabel value="individual" control={<Radio />} label="Individual" />
-                                <FormControlLabel value="other" control={<Radio />} label="Other Than Individual" />
-                            </RadioGroup>
-                        )}
-                    />
-                </FormControl>
-
-                {/* Organization fields moved to dedicated paper */}
+                <Grid container spacing={3}>
+                    <Grid size={{ xs: 12 }}>
+                        <FormControl component="fieldset">
+                            <FormLabel component="legend">Information Type *</FormLabel>
+                            <Controller
+                                rules={{ required: true }}
+                                control={control}
+                                name="infoType"
+                                render={({ field }) => (
+                                    <RadioGroup {...field} row>
+                                        <FormControlLabel value="individual" control={<Radio />} label="Individual" />
+                                        <FormControlLabel value="other" control={<Radio />} label="Other Than Individual" />
+                                    </RadioGroup>
+                                )}
+                            />
+                        </FormControl>
+                    </Grid>
+                </Grid>
             </Paper>
 
-            {/* Individual Details OR Organization Extra Details */}
-            {isIndividual && (
-                <Paper sx={{ p: 4, mb: 4 }}>
-                    <Typography variant="h6" color="primary" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-                        Individual
-                    </Typography>
-                    <Grid container spacing={3}>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <TextField
-                                fullWidth
-                                label="First Name (Surname) *"
-                                {...register('firstName', { required: isIndividual })}
-                                error={!!errors.firstName}
-                                helperText={errors.firstName?.message}
-                            />
-                        </Grid>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <TextField
-                                fullWidth
-                                label="Middle Name"
-                                {...register('middleName')}
-                            />
-                        </Grid>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <TextField
-                                fullWidth
-                                label="Last Name *"
-                                {...register('lastName', { required: isIndividual })}
-                                error={!!errors.lastName}
-                                helperText={errors.lastName?.message}
-                            />
-                        </Grid>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <TextField
-                                fullWidth
-                                label="PAN Number *"
-                                {...register('pan', { required: isIndividual })}
-                                error={!!errors.pan}
-                                helperText={errors.pan?.message}
-                            />
-                        </Grid>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <TextField
-                                fullWidth
-                                label="Father Full Name *"
-                                {...register('fatherName', { required: isIndividual })}
-                                error={!!errors.fatherName}
-                                helperText={errors.fatherName?.message}
-                            />
-                        </Grid>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <TextField
-                                fullWidth
-                                label="Aadhar Number *"
-                                {...register('aadhar', { required: isIndividual })}
-                                error={!!errors.aadhar}
-                                helperText={errors.aadhar?.message}
-                            />
-                        </Grid>
-                    </Grid>
-                </Paper>
-            )}
+            {/* --- Specific Details (Individual or Organization) --- */}
+            <Paper sx={{ p: 3, mb: 3 }}>
+                <Typography variant="subtitle1" color="primary" sx={{ fontWeight: 'bold', mb: 2 }}>
+                    {isIndividual ? 'Individual Details' : 'Organization Details'}
+                </Typography>
 
-
-            {/* Organization Details (Dedicated Paper) */}
-            {!isIndividual && (
-                <Paper sx={{ p: 4, mb: 4 }}>
-                    <Typography variant="h6" color="primary" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-                        Organization
-                    </Typography>
-                    <Grid container spacing={3}>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <TextField
-                                select
-                                fullWidth
-                                label="Organization Type *"
-                                {...register('orgType')}
-                                defaultValue="LLP"
-                            >
-                                <MenuItem value=""><em>Select Organization</em></MenuItem>
-                                <MenuItem value="Company">Company</MenuItem>
-                                <MenuItem value="Partnership">Partnership</MenuItem>
-                                <MenuItem value="Trust">Trust</MenuItem>
-                                <MenuItem value="Societies">Societies</MenuItem>
-                                <MenuItem value="Public Authority">Public Authority</MenuItem>
-                                <MenuItem value="Others">Others</MenuItem>
-                                <MenuItem value="Proprietorship">Proprietorship</MenuItem>
-                                <MenuItem value="LLP">LLP</MenuItem>
-                            </TextField>
-
-                            {orgType === 'Others' && (
+                <Grid container spacing={3}>
+                    {isIndividual ? (
+                        <>
+                            {/* Individual Fields */}
+                            <Grid size={{ xs: 12, md: 4 }}>
+                                <TextField fullWidth label="First Name (Surname) *" {...register('indFirstName', { required: isIndividual })} error={!!errors.indFirstName} />
+                            </Grid>
+                            <Grid size={{ xs: 12, md: 4 }}>
+                                <TextField fullWidth label="Middle Name" {...register('indMiddleName')} />
+                            </Grid>
+                            <Grid size={{ xs: 12, md: 4 }}>
+                                <TextField fullWidth label="Last Name *" {...register('indLastName', { required: isIndividual })} error={!!errors.indLastName} />
+                            </Grid>
+                            <Grid size={{ xs: 12, md: 4 }}>
+                                <TextField fullWidth label="Father's Full Name *" {...register('indFatherName', { required: isIndividual })} error={!!errors.indFatherName} />
+                            </Grid>
+                            <Grid size={{ xs: 12, md: 4 }}>
+                                <TextField fullWidth label="Aadhar Number *" {...register('indAadhar', { required: isIndividual })} error={!!errors.indAadhar} />
+                            </Grid>
+                            <Grid size={{ xs: 12, md: 4 }}>
+                                <TextField fullWidth label="PAN Number *" {...register('indPan', { required: isIndividual })} error={!!errors.indPan} />
+                            </Grid>
+                        </>
+                    ) : (
+                        <>
+                            {/* Organization Fields */}
+                            <Grid size={{ xs: 12, md: 4 }}>
                                 <TextField
+                                    select
                                     fullWidth
-                                    placeholder="Please specify"
-                                    sx={{ mt: 2 }}
-                                    {...register('orgTypeSpecify')}
-                                />
-                            )}
-                        </Grid>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <TextField
-                                fullWidth
-                                label="Name *"
-                                {...register('orgName', { required: !isIndividual })}
-                            />
-                        </Grid>
+                                    label="Organization Type *"
+                                    {...register('orgType')}
+                                    defaultValue="LLP"
+                                >
+                                    <MenuItem value="Company">Company</MenuItem>
+                                    <MenuItem value="Partnership">Partnership</MenuItem>
+                                    <MenuItem value="LLP">LLP</MenuItem>
+                                    <MenuItem value="Trust">Trust</MenuItem>
+                                    <MenuItem value="Societies">Societies</MenuItem>
+                                    <MenuItem value="Public Authority">Public Authority</MenuItem>
+                                    <MenuItem value="Proprietorship">Proprietorship</MenuItem>
+                                    <MenuItem value="Others">Others</MenuItem>
+                                </TextField>
+                            </Grid>
+                            <Grid size={{ xs: 12, md: 4 }}>
+                                <TextField fullWidth label="Name *" {...register('orgName', { required: !isIndividual })} error={!!errors.orgName} />
+                            </Grid>
+                            <Grid size={{ xs: 12, md: 4 }}>
+                                <TextField fullWidth label="PAN Number *" {...register('orgPan', { required: !isIndividual })} error={!!errors.orgPan} />
+                            </Grid>
 
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <TextField
-                                fullWidth
-                                label="PAN Number"
-                                {...register('orgPan')}
-                            />
-                        </Grid>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            {/* Empty spacer to keep PAN on left and Past Exp on next row if needed, 
-                                but flex wrap will handle it. We want Past Exp on a new row?
-                                Screenshot shows PAN on Left. Past Exp below it.
-                                If PAN is item 3 (after Name), and md=6, it's on Left.
-                                Item 4 is empty?
-                            */}
-                        </Grid>
+                            {/* Past Experience (Moved for Org) */}
+                            <Grid size={{ xs: 12, md: 6 }}>
+                                <FormControl component="fieldset">
+                                    <FormLabel component="legend">Do you have any Past Experience?</FormLabel>
+                                    <Controller
+                                        control={control}
+                                        name="pastExperience"
+                                        render={({ field }) => (
+                                            <RadioGroup {...field} row>
+                                                <FormControlLabel value="yes" control={<Radio />} label="Yes" />
+                                                <FormControlLabel value="no" control={<Radio />} label="No" />
+                                            </RadioGroup>
+                                        )}
+                                    />
+                                </FormControl>
+                            </Grid>
 
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <FormControl component="fieldset">
-                                <FormLabel component="legend" sx={{ mb: 1 }}>Do you have any Past Experience? *</FormLabel>
-                                <Controller
-                                    name="hasExperience"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <RadioGroup {...field} row>
-                                            <FormControlLabel value="yes" control={<Radio />} label="Yes" />
-                                            <FormControlLabel value="no" control={<Radio />} label="No" />
-                                        </RadioGroup>
-                                    )}
-                                />
-                            </FormControl>
-                        </Grid>
-                    </Grid>
+                            {/* GST Details (Moved for Org) */}
+                            <Grid size={{ xs: 12, md: 12 }}>
+                                <Alert severity="info" sx={{ mb: 1 }}>If Turn Over of the Project is more than 20 Lakhs, GST is mandatory</Alert>
+                                <FormControl component="fieldset">
+                                    <FormLabel component="legend">Do you have any GST Number?</FormLabel>
+                                    <Controller
+                                        control={control}
+                                        name="hasGst"
+                                        render={({ field }) => (
+                                            <RadioGroup {...field} row>
+                                                <FormControlLabel value="yes" control={<Radio />} label="Yes" />
+                                                <FormControlLabel value="no" control={<Radio />} label="No" />
+                                            </RadioGroup>
+                                        )}
+                                    />
+                                </FormControl>
+                            </Grid>
 
-                    <Alert severity="error" variant="filled" sx={{ mt: 3, mb: 3, borderRadius: 2, bgcolor: '#EF4444' }}>
-                        If Turn Over of the Project is more than 20 Lakhs , GST is mandatory
-                    </Alert>
-
-                    <Grid container spacing={3}>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <FormControl component="fieldset">
-                                <FormLabel component="legend" sx={{ mb: 1 }}>Do you have any GST Number? *</FormLabel>
-                                <Controller
-                                    name="hasGst"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <RadioGroup {...field} row>
-                                            <FormControlLabel value="yes" control={<Radio />} label="Yes" />
-                                            <FormControlLabel value="no" control={<Radio />} label="No" />
-                                        </RadioGroup>
-                                    )}
-                                />
-                            </FormControl>
-                        </Grid>
-                        <Grid size={{ xs: 12, md: 6 }}>
                             {hasGst === 'yes' && (
-                                <TextField
-                                    fullWidth
-                                    label="GST Number *"
-                                    {...register('gstNumber', { required: hasGst === 'yes' })}
-                                    error={!!errors.gstNumber}
-                                    helperText={errors.gstNumber?.message}
-                                />
+                                <Grid size={{ xs: 12, md: 6 }}>
+                                    <TextField fullWidth label="GSTIN Number *" {...register('gstNumber', { required: hasGst === 'yes' })} error={!!errors.gstNumber} />
+                                </Grid>
                             )}
-                        </Grid>
-                    </Grid>
-                </Paper>
-            )}
+                        </>
+                    )}
+                </Grid>
+            </Paper>
 
-            {/* Questions for Individual (Shared Logic but separate render to maintain layout control) */}
-            {isIndividual && (
-                <Paper sx={{ p: 4, mb: 4, borderRadius: 2, bgcolor: 'background.paper' }}>
-                    <Alert severity="error" variant="filled" sx={{ mb: 4, borderRadius: 2, bgcolor: '#EF4444' }}>
-                        If Turn Over of the Project is more than 20 Lakhs , GST is mandatory
-                    </Alert>
-
-                    <Grid container spacing={3}>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <FormControl component="fieldset">
-                                <FormLabel component="legend" sx={{ mb: 1 }}>Do you have any Past Experience? *</FormLabel>
-                                <Controller
-                                    name="hasExperience"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <RadioGroup {...field} row>
-                                            <FormControlLabel value="yes" control={<Radio />} label="Yes" />
-                                            <FormControlLabel value="no" control={<Radio />} label="No" />
-                                        </RadioGroup>
-                                    )}
-                                />
-                            </FormControl>
-                        </Grid>
-                    </Grid>
-
-                    <Grid container spacing={3} sx={{ mt: 2 }}>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <FormControl component="fieldset">
-                                <FormLabel component="legend" sx={{ mb: 1 }}>Do you have any GST Number? *</FormLabel>
-                                <Controller
-                                    name="hasGst"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <RadioGroup {...field} row>
-                                            <FormControlLabel value="yes" control={<Radio />} label="Yes" />
-                                            <FormControlLabel value="no" control={<Radio />} label="No" />
-                                        </RadioGroup>
-                                    )}
-                                />
-                            </FormControl>
-                        </Grid>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            {hasGst === 'yes' && (
-                                <TextField
-                                    fullWidth
-                                    label="GST Number *"
-                                    {...register('gstNumber', { required: hasGst === 'yes' })}
-                                    error={!!errors.gstNumber}
-                                    helperText={errors.gstNumber?.message}
-                                />
-                            )}
-                        </Grid>
-                    </Grid>
-                </Paper>
-            )}
-
-            {/* Address */}
-            <Paper sx={{ p: 4, mb: 4 }}>
-                <Typography variant="h6" color="primary" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-                    {isIndividual ? 'Address For Official Communication' : 'Address Details'}
+            {/* --- Additional Information (Common) --- */}
+            <Paper sx={{ p: 3, mb: 3 }}>
+                <Typography variant="subtitle1" color="primary" sx={{ fontWeight: 'bold', mb: 2 }}>
+                    Additional Information
                 </Typography>
                 <Grid container spacing={3}>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <TextField fullWidth label="House Number/Sy. No" {...register('houseNo', { required: true })} error={!!errors.houseNo} />
+                    {isIndividual && (
+                        <>
+                            <Grid size={{ xs: 12, md: 6 }}>
+                                <FormControl component="fieldset">
+                                    <FormLabel component="legend">Do you have any past experience?</FormLabel>
+                                    <Controller
+                                        control={control}
+                                        name="pastExperience"
+                                        render={({ field }) => (
+                                            <RadioGroup {...field} row>
+                                                <FormControlLabel value="yes" control={<Radio />} label="Yes" />
+                                                <FormControlLabel value="no" control={<Radio />} label="No" />
+                                            </RadioGroup>
+                                        )}
+                                    />
+                                </FormControl>
+                            </Grid>
+
+                            <Grid size={{ xs: 12, md: 6 }}>
+                                <FormControl component="fieldset">
+                                    <FormLabel component="legend">Do you have GST Number?</FormLabel>
+                                    <Controller
+                                        control={control}
+                                        name="hasGst"
+                                        render={({ field }) => (
+                                            <RadioGroup {...field} row>
+                                                <FormControlLabel value="yes" control={<Radio />} label="Yes" />
+                                                <FormControlLabel value="no" control={<Radio />} label="No" />
+                                            </RadioGroup>
+                                        )}
+                                    />
+                                </FormControl>
+                            </Grid>
+                            {hasGst === 'yes' && (
+                                <Grid size={{ xs: 12 }}>
+                                    <TextField fullWidth label="GSTIN Number *" {...register('gstNumber', { required: hasGst === 'yes' })} error={!!errors.gstNumber} />
+                                </Grid>
+                            )}
+                        </>
+                    )}
+
+                </Grid>
+            </Paper>
+
+            {/* --- Address Section --- */}
+            <Paper sx={{ p: 3, mb: 3 }}>
+                <Typography variant="subtitle1" color="primary" sx={{ fontWeight: 'bold', mb: 2 }}>
+                    Address For Official Communication
+                </Typography>
+                <Grid container spacing={3}>
+                    <Grid size={{ xs: 12, md: 4 }}>
+                        <TextField fullWidth label="House No/Sy. No/Block No/Plot No *" {...register('houseNo', { required: true })} error={!!errors.houseNo} />
                     </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <TextField fullWidth label="Building Name *" {...register('buildingName', { required: true })} error={!!errors.buildingName} />
+                    <Grid size={{ xs: 12, md: 4 }}>
+                        <TextField fullWidth label="Building Name" {...register('buildingName')} />
                     </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
+                    <Grid size={{ xs: 12, md: 4 }}>
                         <TextField fullWidth label="Street Name *" {...register('streetName', { required: true })} error={!!errors.streetName} />
                     </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
+                    <Grid size={{ xs: 12, md: 4 }}>
                         <TextField fullWidth label="Locality *" {...register('locality', { required: true })} error={!!errors.locality} />
                     </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
+                    <Grid size={{ xs: 12, md: 4 }}>
                         <TextField fullWidth label="Landmark *" {...register('landmark', { required: true })} error={!!errors.landmark} />
                     </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
+
+                    {/* Administrative Hierarchy */}
+                    <Grid size={{ xs: 12, md: 4 }}>
                         <TextField select fullWidth label="State *" defaultValue="Telangana" {...register('state')}>
                             <MenuItem value="Telangana">Telangana</MenuItem>
                             <MenuItem value="Andhra Pradesh">Andhra Pradesh</MenuItem>
                         </TextField>
                     </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <TextField select fullWidth label="District *" defaultValue="" {...register('district', { required: true })} error={!!errors.district}>
-                            <MenuItem value="Mahabubabad">Mahabubabad</MenuItem>
+                    <Grid size={{ xs: 12, md: 4 }}>
+                        <TextField select fullWidth label="District *" defaultValue="" {...register('district')} error={!!errors.district}>
                             <MenuItem value="Hyderabad">Hyderabad</MenuItem>
                             <MenuItem value="Ranga Reddy">Ranga Reddy</MenuItem>
+                            <MenuItem value="Medchal-Malkajgiri">Medchal-Malkajgiri</MenuItem>
                         </TextField>
                     </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <TextField select fullWidth label="Mandal" defaultValue="" {...register('mandal')}>
-                            <MenuItem value="Garla">Garla</MenuItem>
+                    <Grid size={{ xs: 12, md: 4 }}>
+                        <TextField select fullWidth label="Mandal *" defaultValue="" {...register('mandal')} error={!!errors.mandal}>
                             <MenuItem value="Serilingampally">Serilingampally</MenuItem>
+                            <MenuItem value="Gandipet">Gandipet</MenuItem>
                         </TextField>
                     </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <TextField select fullWidth label="Village/City/Town" defaultValue="" {...register('village')}>
-                            <MenuItem value="Buddharam">Buddharam</MenuItem>
+                    <Grid size={{ xs: 12, md: 4 }}>
+                        <TextField select fullWidth label="Village/City/Town *" defaultValue="" {...register('village')} error={!!errors.village}>
                             <MenuItem value="Madhapur">Madhapur</MenuItem>
+                            <MenuItem value="Gachibowli">Gachibowli</MenuItem>
                         </TextField>
                     </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
+                    <Grid size={{ xs: 12, md: 4 }}>
                         <TextField fullWidth label="Pin Code *" {...register('pincode', { required: true })} error={!!errors.pincode} />
                     </Grid>
                 </Grid>
             </Paper>
 
-            {/* Contact Details */}
-            <Paper sx={{ p: 4, mb: 4 }}>
-                <Typography variant="h6" color="primary" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
+            {/* --- Contact Person (Org Only) & Common Contact --- */}
+            <Paper sx={{ p: 3, mb: 3 }}>
+                <Typography variant="subtitle1" color="primary" sx={{ fontWeight: 'bold', mb: 2 }}>
                     {isIndividual ? 'Contact Details' : 'Organization Contact Details'}
                 </Typography>
                 <Grid container spacing={3}>
                     {!isIndividual && (
                         <>
                             <Grid size={{ xs: 12, md: 6 }}>
-                                <TextField fullWidth label="Name of Contact Person" {...register('contactPersonName')} />
+                                <TextField fullWidth label="Name of Contact Person *" {...register('contactPersonName', { required: !isIndividual })} />
                             </Grid>
                             <Grid size={{ xs: 12, md: 6 }}>
-                                <TextField fullWidth label="Designation of Contact Person" {...register('contactPersonDesignation')} />
+                                <TextField fullWidth label="Designation of Contact Person *" {...register('contactPersonDesignation', { required: !isIndividual })} />
                             </Grid>
                         </>
                     )}
+
                     <Grid size={{ xs: 12, md: 6 }}>
                         <TextField fullWidth label="Mobile Number *" {...register('mobile', { required: true })} error={!!errors.mobile} />
                     </Grid>
-                    {!isIndividual && (
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <TextField fullWidth label="Secondary Mobile Number" {...register('secondaryMobile')} />
-                        </Grid>
-                    )}
                     <Grid size={{ xs: 12, md: 6 }}>
-                        <TextField fullWidth label="Office Number *" {...register('officeNumber', { required: true })} error={!!errors.officeNumber} />
+                        <TextField fullWidth label="Secondary Mobile Number" {...register('secondaryMobile')} />
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
-                        <TextField fullWidth label="Fax Number" {...register('fax')} />
+                        <TextField fullWidth label="Office Number" {...register('orgOfficeNo')} />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                        <TextField fullWidth label="Fax Number" {...register('orgFax')} />
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
                         <TextField fullWidth label="Email ID *" type="email" {...register('email', { required: true })} error={!!errors.email} />
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
-                        <TextField fullWidth label="Website URL" {...register('website')} />
+                        <TextField fullWidth label="Website URL" {...register('orgWebsite')} />
                     </Grid>
                 </Grid>
 
                 {isIndividual && (
-                    <Box sx={{ mt: 4, display: 'flex', gap: 4, alignItems: 'flex-start' }}>
-                        <Box
-                            sx={{
-                                width: 150,
-                                height: 180,
-                                border: '2px dashed #ccc',
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                borderRadius: 2,
-                                overflow: 'hidden'
-                            }}
-                        >
-                            <img src="/placeholder-upload.png" alt="Upload Preview" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'none' }} />
-                            <Typography variant="caption" color="text.secondary">Preview</Typography>
-                        </Box>
-                        <Box>
-                            <Typography variant="subtitle1" gutterBottom fontWeight="bold">Instruction for Upload Photo</Typography>
-                            <Typography variant="body2" color="success.main" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                ✅ Photograph Format should be JPEG or PNG.
-                            </Typography>
-                            <Button
-                                variant="outlined"
-                                component="label"
-                                startIcon={<CloudUploadIcon />}
-                                sx={{ mt: 2 }}
-                            >
-                                Upload Photo
-                                <input type="file" hidden accept="image/*" />
-                            </Button>
-                        </Box>
+                    <Box sx={{ mt: 3, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        <Button variant="contained" component="label" startIcon={<CloudUploadIcon />} sx={{ width: 'fit-content' }}>
+                            Upload Profile Image
+                            <input hidden accept="image/*" type="file" />
+                        </Button>
+                        <Typography variant="caption" color="text.secondary">
+                            Instruction for Upload Photo
+                        </Typography>
                     </Box>
                 )}
             </Paper>
 
-            {/* Partners Section (Only for Other) */}
-            {!isIndividual && (
-                <Paper sx={{ p: 4, mb: 4 }}>
-                    <Typography variant="h6" color="primary" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-                        Member / Partner Details
-                    </Typography>
-
-                    {/* Add Member Form (Visual simulation, functionality could be complex) */}
-                    <Box sx={{ p: 2, border: '1px solid #e0e0e0', borderRadius: 2, mb: 3 }}>
-                        <Typography variant="subtitle2" gutterBottom>Add New Member</Typography>
-                        <Grid container spacing={2}>
-                            <Grid size={{ xs: 12, md: 4 }}>
-                                <TextField fullWidth size="small" label="First Name" />
-                            </Grid>
-                            <Grid size={{ xs: 12, md: 4 }}>
-                                <TextField fullWidth size="small" label="Last Name" />
-                            </Grid>
-                            <Grid size={{ xs: 12, md: 4 }}>
-                                <TextField fullWidth size="small" label="Designation" />
-                            </Grid>
-                            <Grid size={{ xs: 12, md: 4 }}>
-                                <Button variant="contained" startIcon={<AddIcon />} onClick={() => append({
-                                    firstName: 'New',
-                                    lastName: 'Member',
-                                    designation: 'Partner',
-                                    middleName: '',
-                                    pan: 'XXXX',
-                                    aadhar: 'XXXX',
-                                    houseNo: '',
-                                    buildingName: '',
-                                    streetName: '',
-                                    locality: '',
-                                    landmark: '',
-                                    state: 'Telangana',
-                                    district: '',
-                                    mandal: '',
-                                    village: '',
-                                    pincode: ''
-                                } as Partner)}>
-                                    Add Member
-                                </Button>
-                            </Grid>
-                        </Grid>
-                    </Box>
-
-                    <TableContainer component={Box} sx={{ border: '1px solid #f0f0f0', borderRadius: 2 }}>
-                        <Table>
-                            <TableHead sx={{ bgcolor: 'grey.100' }}>
-                                <TableRow>
-                                    <TableCell>First Name</TableCell>
-                                    <TableCell>Middle Name</TableCell>
-                                    <TableCell>Last Name</TableCell>
-                                    <TableCell>Designation</TableCell>
-                                    <TableCell>PAN Number</TableCell>
-                                    <TableCell>Action</TableCell>
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {fields.map((field, index) => (
-                                    <TableRow key={field.id}>
-                                        <TableCell>{field.firstName}</TableCell>
-                                        <TableCell>{field.middleName}</TableCell>
-                                        <TableCell>{field.lastName}</TableCell>
-                                        <TableCell>{field.designation}</TableCell>
-                                        <TableCell>{field.pan}</TableCell>
-                                        <TableCell>
-                                            <IconButton size="small" color="primary"><EditIcon /></IconButton>
-                                            <IconButton size="small" color="error" onClick={() => remove(index)}><DeleteIcon /></IconButton>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                                {fields.length === 0 && (
-                                    <TableRow>
-                                        <TableCell colSpan={6} align="center" sx={{ color: 'text.secondary', py: 3 }}>
-                                            No members added. Click "Add Member" to add details.
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </TableContainer>
-                    <Typography variant="caption" sx={{ mt: 2, display: 'block', color: 'info.main' }}>
-                        Click on add member button to add member details. After records are added, updated or deleted click on save button.
-                    </Typography>
-                </Paper>
-            )}
-
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mb: 5 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mb: 10 }}>
                 <Button variant="outlined" size="large">Save as Draft</Button>
-                <Button type="submit" variant="contained" size="large" disableElevation>Save & Continue</Button>
+                <Button type="submit" variant="contained" size="large" disableElevation>
+                    Save & Continue
+                </Button>
             </Box>
         </Box>
     );

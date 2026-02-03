@@ -14,6 +14,7 @@ import {
     useMediaQuery,
     Collapse,
 } from '@mui/material';
+import { useNavigate, useLocation } from 'react-router-dom';
 import PersonIcon from '@mui/icons-material/Person';
 import BusinessIcon from '@mui/icons-material/Business';
 import PaymentIcon from '@mui/icons-material/Payment';
@@ -50,16 +51,19 @@ interface SidebarProps {
 interface MenuItem {
     text: string;
     icon: React.ReactNode;
-    active?: boolean;
+    path?: string;
     children?: MenuItem[];
 }
 
 const Sidebar = ({ mobileOpen, handleDrawerToggle }: SidebarProps) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+    const navigate = useNavigate();
+    const location = useLocation();
+
     const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({
         'Account': true,
-        'Project Details': false,
+        'Project Details': true, // Default open for easier access
     });
 
     const handleSubmenuClick = (text: string) => {
@@ -69,14 +73,25 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }: SidebarProps) => {
         }));
     };
 
+    const handleItemClick = (item: MenuItem) => {
+        if (item.children) {
+            handleSubmenuClick(item.text);
+        } else if (item.path) {
+            navigate(item.path);
+            if (isMobile) {
+                handleDrawerToggle();
+            }
+        }
+    };
+
     const menuItems: MenuItem[] = [
         {
             text: 'Account',
             icon: <AccountCircleIcon />,
             children: [
-                { text: 'My Profile', icon: <PersonIcon />, active: true },
-                { text: 'Add Organizations Other Member Details', icon: <BusinessIcon /> }, // Best guess icon
-                { text: 'Past Experience Details', icon: <HistoryIcon /> },
+                { text: 'My Profile', icon: <PersonIcon />, path: '/personal-info' },
+                { text: 'Add Organizations Other Member Details', icon: <BusinessIcon />, path: '/personal-info' }, // Placeholder route
+                { text: 'Past Experience Details', icon: <HistoryIcon />, path: '/past-experience' },
                 { text: 'Change Password', icon: <VpnKeyIcon /> },
             ],
         },
@@ -84,28 +99,33 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }: SidebarProps) => {
             text: 'Project Details',
             icon: <BusinessIcon />,
             children: [
-                { text: 'Add Project', icon: <ApartmentIcon /> },
-                { text: 'Add Co-Promoter Details', icon: <GroupIcon /> },
-                { text: 'Add Buildings', icon: <DomainIcon /> },
-                { text: 'Common Areas and Facilities', icon: <DeckIcon /> },
-                { text: 'Add Project Cost', icon: <MonetizationOnIcon /> },
-                { text: 'Add Project Professional Details', icon: <EngineeringIcon /> },
-                { text: 'Document Upload', icon: <UploadFileIcon /> },
-                { text: 'Add Litigations Related to the Project', icon: <GavelIcon /> },
-                { text: 'Task/Activity', icon: <TaskIcon /> },
-                { text: 'Upload Photos', icon: <PhotoCameraIcon /> },
-                { text: 'Application Withdrawal', icon: <CancelIcon /> },
-                { text: 'Application For Change', icon: <EditIcon /> },
+                { text: 'Add Project', icon: <ApartmentIcon />, path: '/project/add' },
+                { text: 'Add Co-Promoter Details', icon: <GroupIcon />, path: '/project/co-promoter' },
+                { text: 'Add Buildings', icon: <DomainIcon />, path: '/project/add-buildings' },
+                { text: 'Common Areas and Facilities', icon: <DeckIcon />, path: '/project/common-areas' },
+                { text: 'Add Project Cost', icon: <MonetizationOnIcon />, path: '/project/cost' },
+                { text: 'Add Project Professional Details', icon: <EngineeringIcon />, path: '/project/professional' },
+                { text: 'Document Upload', icon: <UploadFileIcon />, path: '/project/documents' },
+                { text: 'Add Litigations Related to the Project', icon: <GavelIcon />, path: '/project/litigations' },
+                { text: 'Task/Activity', icon: <TaskIcon />, path: '/project/activity' },
+                { text: 'Upload Photos', icon: <PhotoCameraIcon />, path: '/project/photos' },
+                { text: 'Application Withdrawal', icon: <CancelIcon />, path: '/project/withdrawal' },
+                { text: 'Application For Change', icon: <EditIcon />, path: '/project/change' },
             ],
         },
-        { text: 'Payment', icon: <PaymentIcon /> },
-        { text: 'Project Extension', icon: <UpdateIcon /> },
-        { text: 'Download Payment Receipts', icon: <DownloadIcon /> },
-        { text: 'Quarterly Update', icon: <UpdateIcon /> },
-        { text: 'Annual Audit Report', icon: <AssessmentIcon /> },
-        { text: 'Overall completion certificate upload', icon: <VerifiedUserIcon /> },
-        { text: 'Log Out', icon: <LogoutIcon /> },
+        { text: 'Payment', icon: <PaymentIcon />, path: '/payment' },
+        { text: 'Project Extension', icon: <UpdateIcon />, path: '/project/extension' },
+        { text: 'Download Payment Receipts', icon: <DownloadIcon />, path: '/payment/receipts' },
+        { text: 'Quarterly Update', icon: <UpdateIcon />, path: '/update/quarterly' },
+        { text: 'Annual Audit Report', icon: <AssessmentIcon />, path: '/update/audit' },
+        { text: 'Overall completion certificate upload', icon: <VerifiedUserIcon />, path: '/update/completion' },
+        { text: 'Log Out', icon: <LogoutIcon />, path: '/logout' },
     ];
+
+    const isActive = (path?: string) => {
+        if (!path) return false;
+        return location.pathname === path;
+    };
 
     const drawerContent = (
         <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#1a1a2e', color: 'white' }}>
@@ -133,10 +153,12 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }: SidebarProps) => {
                     <Box key={item.text}>
                         <ListItem disablePadding>
                             <ListItemButton
-                                onClick={() => item.children ? handleSubmenuClick(item.text) : undefined}
+                                onClick={() => handleItemClick(item)}
+                                selected={item.path ? isActive(item.path) : false}
                                 sx={{
                                     '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' },
                                     py: 1.5,
+                                    bgcolor: item.path && isActive(item.path) ? 'rgba(255,255,255,0.1)' : 'transparent',
                                 }}
                             >
                                 <ListItemIcon sx={{ color: 'gray', minWidth: 40 }}>
@@ -156,7 +178,8 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }: SidebarProps) => {
                                     {item.children.map((child, index) => (
                                         <ListItemButton
                                             key={child.text}
-                                            selected={child.active}
+                                            onClick={() => handleItemClick(child)}
+                                            selected={isActive(child.path)}
                                             sx={{
                                                 pl: 4,
                                                 py: 1,
@@ -180,13 +203,13 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }: SidebarProps) => {
                                                 }
                                             }}
                                         >
-                                            <ListItemIcon sx={{ color: child.active ? theme.palette.primary.light : 'gray', minWidth: 35 }}>
+                                            <ListItemIcon sx={{ color: isActive(child.path) ? theme.palette.primary.light : 'gray', minWidth: 35 }}>
                                                 {/* Dot indicator or smaller icon for nested items to mimic screenshot tree */}
-                                                <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: child.active ? theme.palette.primary.light : 'gray', ml: 0.5 }} />
+                                                <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: isActive(child.path) ? theme.palette.primary.light : 'gray', ml: 0.5 }} />
                                             </ListItemIcon>
                                             <ListItemText
                                                 primary={child.text}
-                                                primaryTypographyProps={{ fontSize: '0.85rem', color: child.active ? 'white' : 'rgba(255,255,255,0.7)' }}
+                                                primaryTypographyProps={{ fontSize: '0.85rem', color: isActive(child.path) ? 'white' : 'rgba(255,255,255,0.7)' }}
                                             />
                                         </ListItemButton>
                                     ))}
