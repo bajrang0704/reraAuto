@@ -1,73 +1,91 @@
-# React + TypeScript + Vite
+# Cognito Company - Personal Info Form Redesign
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This project is a modern, premium frontend implementation of the "Cognito Company" Personal Info form, built to replace legacy RERA interfaces with a polished, user-friendly experience.
 
-Currently, two official plugins are available:
+## ✨ Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Premium UI**: Custom Material UI (v6) theme with a Deep Indigo brand palette.
+- **Responsive Layout**:
+    - Persistent sidebar with nested menus ("Account", "Project Details").
+    - collapsible sub-menus and optimized navigation structure.
+    - Responsive header with profile management.
+- **Dynamic "Personal Info" Form**:
+    - **Dual Flows**: Dedicated views for **Individual** vs. **Other Than Individual**.
+    - **Conditional Logic**:
+        - "Other" Organization type adds a "Please specify" field.
+        - Organization details grouped logically with questions.
+        - Dynamic "GST Number" field appearing only when applicable.
+        - Mandatory GST warning banner for high-turnover projects.
+    - **Partners Management**: Dynamic table to Add/Edit/Remove partners or members.
+    - **File Upload**: Visual placeholder and preview area for photo uploads.
+- **Robust Validation**: Powered by `react-hook-form` ensuring data integrity before submission.
 
-## React Compiler
+## 🛠 Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Framework**: [React 18](https://react.dev/)
+- **Build Tool**: [Vite](https://vitejs.dev/)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **UI Library**: [Material UI (MUI)](https://mui.com/)
+- **Forms**: [React Hook Form](https://react-hook-form.com/)
+- **Routing**: [React Router](https://reactrouter.com/)
+- **State/Data**: [TanStack Query](https://tanstack.com/query/latest) (Setup for API integration)
+- **Formatting**: Prettier, ESLint
 
-## Expanding the ESLint configuration
+## 🚀 Getting Started
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Prerequisites
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- Node.js (v16+)
+- npm
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### Installation
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+1.  Clone the repository:
+    ```bash
+    git clone <repository-url>
+    cd reraAuto
+    ```
+
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
+
+### Development
+
+Start the development server with HMR:
+```bash
+npm run dev
+```
+Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+### Production Build
+
+Create a production-ready build:
+```bash
+npm run build
+```
+The output will be in the `dist` folder.
+
+## 📂 Project Structure
+
+```
+src/
+├── components/
+│   ├── Layout/          # Sidebar, Header, MainLayout
+│   └── ...
+├── pages/
+│   └── PersonalInfo/    # Main logic for Personal Info form
+├── theme/               # Custom MUI theme configuration
+├── App.tsx              # Routing and App entry
+└── main.tsx             # Root render
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 🎨 Design Notes
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- **Primary Color**: Deep Indigo (`#283593`)
+- **Typography**: Inter / Roboto
+- **Layout**: Fixed Sidebar (Left), Fixed Header (Top), Scrollable Content Area.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+---
+© 2026 Cognito Company
